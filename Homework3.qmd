@@ -1,0 +1,238 @@
+---
+title: "Homework 3"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Task 1: Conceptual Questions
+### 1. 
+> The relative path used to access a file in the myFolder folder would be read_csv("../MyData.csv")
+
+### 2. 
+> R Projects house several files that can all be used together to create an output object. Having access to all of those files in one place makes it easy to make edits in each file that effect the output.
+
+### 3. 
+> Git is a version control software that allows for the "snap-shotting" of programming files to ensure that older versions of a file can be recovered and altered. Github is software that houses repositories of Git files. Changes to files using Git can be committed and pushed to a Github repository, and files on Github can be pulled from the software for local editing.
+
+### 4. 
+> Tibbles print data in different ways than dataframes, displaying the type of data that is shown in each column (integer, character, etc.). Also tibbles do not coerce down to a vector when we subset one column with [], where a dataframe would.
+
+### 5. 
+```{r}
+arrange(filter(select(as_tibble(iris), starts_with("Petal"), Species), Petal.Length < 1.55), Species)
+
+library(dplyr)
+iris |> 
+  as_tibble() |>
+  select(starts_with("Petal"), Species) |>
+  filter(Petal.Length < 1.55) |>
+  arrange(Species)
+```
+> The two sets of code produce the same 37 x 3 tibble from the iris dataset. 
+
+### 6. 
+> Long format data means that the data is formatted so there are more rows than columns when possible. This usually means there is one observation in a given row, and this format is generally preferred for statistical analysis. Wide format data on the other hand will often contain multiple observations in a single row.
+
+## Task 2: Reading Delimited Data
+## Glass data
+### 1.  
+```{r}
+glass <- read_csv("https://www4.stat.ncsu.edu/~online/datasets/glass.data", 
+                  col_names = c("Id", "RI", "Na", "Mg", "Al", "Si", "K", "Ca", "Ba", "Fe","Type_of_Glass"))
+glass
+```
+> Data was successfully read in and converted to a tibble containing 214 rows. 
+
+### 2. 
+```{r}
+glass |>
+  mutate(Type_of_Glass = factor(Type_of_Glass,
+                                levels = c(1,2,3,4,5,6,7),
+                                labels = c("building_windows_float_processed","building_windows_non_float_processed","vehicle_windows_float_processed","vehicle_windows_non_float_processed","containers","tableware","headlamps")))
+```
+> Used the factor function to convert the levels of Type_of_Glass from numeric values 1-7 to character strings. The tibble still contains 214 rows 
+
+### 3. 
+```{r}
+glass |>
+  mutate(Type_of_Glass = factor(Type_of_Glass,
+                                levels = c(1,2,3,4,5,6,7),
+                                labels = c("building_windows_float_processed","building_windows_non_float_processed","vehicle_windows_float_processed","vehicle_windows_non_float_processed","containers","tableware","headlamps"))) |>
+  filter((Fe < 0.2) & (Type_of_Glass %in% c("tableware","headlamps")))
+```
+> Continued the chain to keep only records with Fe values less than 0.2 and only tableware and headlamp glass types. After filtering the records, there are only 38 rows printed.
+
+## Yeast data
+### 1. 
+```{r}
+yeast <- read_table("https://www4.stat.ncsu.edu/~online/datasets/yeast.data", 
+                    col_names = c("seq_name","mcg","gvh","alm","mit","erl","pox","vac","nuc","class"))
+yeast
+```
+> The data is space delimited (2 spaces), so the read_table() function was used.
+
+### 2. 
+```{r}
+yeast |>
+  select(-seq_name,-nuc)
+```
+> De-selecting the 2 columns was done with the - operator rather than explicitly selecting the other 8 columns.
+
+### 3. 
+```{r}
+yeast |>
+  select(-seq_name,-nuc) |>
+  mutate(across(where(is.numeric), .fns = list(mean = mean, median = median), .names = "{.fn}_{.col}"))
+```
+> The across function was used to access all of the numeric columns and create new columns where a function (mean or median) was applied.
+
+## Task 3: Combining Excel and Delimited Data
+### 1. 
+```{r}
+library(readxl)
+wines <- read_excel("../white-wine.xlsx", sheet = 1)
+wines
+```
+> The Excel dataset was placed in the folder one above the Quarto document's working directory, so a relative path was used to read the data in.
+
+### 2.
+```{r}
+names_wine <- read_excel("../white-wine.xlsx", sheet = 2)
+names_wine
+colnames(wines) <- names_wine$Variables
+wines
+```
+> The names_wine object was read in as a tibble, but needed to be a vector to be assigned to the colnames of the wines tibble. This was done by accessing the first column of the tibble (a vector). 
+
+### 3. 
+```{r}
+wines <- wines |> mutate(type = "white")
+```
+> In order for the type column to be added, I needed to overwrite the original tibble (was not working without the overwrite).
+
+### 4. 
+```{r}
+reds <- read_delim("../red-wine.csv", delim = ";")
+colnames(reds) = names_wine$Variables
+reds <- reds |> mutate(type = "red")
+reds
+```
+
+### 5. 
+```{r}
+all_wines <- dplyr::bind_rows(wines,reds)
+```
+> There were 4,898 rows in the white wine dataset and 1,599 rows in the red wine dataset. When these datasets are concatenated, they should have 6,497 rows. This is confirmed with the all_wines tibble. 
+
+### 6. 
+```{r}
+all_wines |>
+  filter((quality > 6.5) & (alcohol < 132))
+```
+> After filtering the tibble with these conditions, there are 1,206 rows; down from the original number of 6,497 rows.
+
+### 7.
+```{r}
+all_wines |>
+  filter((quality > 6.5) & (alcohol < 132)) |>
+  arrange(desc(quality))
+```
+> The tibble was rearranged by descending quality.
+
+### 8. 
+```{r}
+all_wines |>
+  filter((quality > 6.5) & (alcohol < 132)) |>
+  arrange(desc(quality)) |>
+  select(contains("acid"), alcohol, type, quality)
+```
+> The tibble was subsetted to only include the 6 specified columns.  
+
+### 9. 
+```{r}
+all_wines |>
+  filter((quality > 6.5) & (alcohol < 132)) |>
+  arrange(desc(quality)) |>
+  select(contains("acid"), alcohol, type, quality) |>
+  group_by(quality) |>
+  mutate(mean_alc = mean(alcohol), sd_alc = sd(alcohol))
+```
+> 2 new columns were created the contain the mean and standard deviation of the alcohol variable for each grouped wine quality value.
+
+## Task 4: Database Practice
+### 1.
+```{r}
+library(DBI)
+con <- dbConnect(RSQLite::SQLite(),"lahman.db")
+dbListTables(con)
+```
+
+### 2. 
+```{r}
+tbl(con,"Teams") |>
+  filter(yearID == 2015) |>
+  collect()
+```
+
+### 3. 
+```{r}
+tbl(con, sql(
+  "SELECT `Teams` .* 
+   FROM `Teams`
+   WHERE (`yearID` = 2015.0)")
+  ) |>
+  collect()
+```
+> The SQL code was found by applying the show_query() function (from the dplyr package) to the code chain from question #2.
+
+### 4.
+```{r}
+tbl(con, "HallOfFame") |> 
+  filter(inducted == "Y") |> 
+  select(ends_with("ID"), category) |>
+  collect()
+```
+
+### 5. 
+```{r}
+inner_join(tbl(con, "HallOfFame") |> filter(inducted == "Y") |> select(ends_with("ID"), category),
+           tbl(con, "People") |> select(playerID, nameFirst, nameLast), 
+           by = c("playerID" = "playerID")) |>
+  collect()
+```
+> Combining the tibble of Hall of Fame players with the tibble containing their name information.
+
+### 6. 
+```{r}
+tbl(con, "Managers") |>
+  select(playerID, G, W, L) |>
+  group_by(playerID) |>
+  summarize(G_managed = sum(G, na.rm = T),
+            Total_W = sum(W, na.rm = T),
+            Total_L = sum(L, na.rm = T)) |>
+  collect() |>
+  mutate(Win_pct = Total_W/G_managed) |>
+  arrange(desc(Win_pct))
+```
+> Tibble created containing all Managers in descending order by Win percentage.
+
+### 7. 
+```{r}
+inner_join(inner_join(tbl(con, "HallOfFame") |> filter(inducted == "Y") |> select(ends_with("ID"), category),
+           tbl(con, "People") |> select(playerID, nameFirst, nameLast), 
+           by = c("playerID" = "playerID")) |>
+           collect(),
+  tbl(con, "Managers") |>
+  select(playerID, G, W, L) |>
+  group_by(playerID) |>
+  summarize(G_managed = sum(G, na.rm = T),
+            Total_W = sum(W, na.rm = T),
+            Total_L = sum(L, na.rm = T)) |>
+  collect() |>
+  mutate(Win_pct = Total_W/G_managed) |>
+  arrange(desc(Win_pct)),
+  by = c("playerID" = "playerID"))
+```
+> The tibbles from the previous 2 questions were combined via an inner join to create the final tibble, consisting of 97 records. This represents 97 people who were both inducted into the Hall of Fame and managed a team.  
