@@ -1,5 +1,6 @@
 ---
-title: "Homework 3"
+title: "Homework 3 - ST 558"
+author: "Trevor Lynch"
 format: html
 editor: visual
 editor_options: 
@@ -21,9 +22,7 @@ editor_options:
 
 ### 5. 
 ```{r}
-arrange(filter(select(as_tibble(iris), starts_with("Petal"), Species), Petal.Length < 1.55), Species)
-
-library(dplyr)
+library(tidyverse)
 iris |> 
   as_tibble() |>
   select(starts_with("Petal"), Species) |>
